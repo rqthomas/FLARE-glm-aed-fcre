@@ -1,5 +1,10 @@
-renv::restore()
+#renv::restore()
 #diskutil partitionDisk $(hdiutil attach -nomount ram://2048000) 1 GPTFormat APFS 'ramdisk' '100%'
+install.packages("remotes")
+remotes::install_github("FLARE-forecast/GLM3r")
+remotes::install_github("FLARE-forecast/FLAREr")
+
+
 library(tidyverse)
 library(lubridate)
 
@@ -45,21 +50,68 @@ config$file_path$execute_directory <- file.path(lake_directory, "flare_tempdir")
 config$file_path$run_config <- file.path(lake_directory, "configuration", "FLAREr","configure_run.yml")
 config$file_path$forecast_output_directory <- file.path(lake_directory, "forecasts")
 
-
-
 run_config <- yaml::read_yaml(config$file_path$run_config)
 
-met_qaqc(realtime_file = file.path(config_obs$data_location, config_obs$met_raw_obs_fname[1]),
-         qaqc_file = file.path(config_obs$data_location, config_obs$met_raw_obs_fname[2]),
+setwd(file.path(lake_directory, "data_raw"))
+if(!dir.exists(file.path(lake_directory, "data_raw", config_obs$realtime_insitu_location))){
+  system(paste0("git clone --depth 1 --single-branch --branch ",config_obs$realtime_insitu_location, " https://github.com/FLARE-forecast/FCRE-data.git ", config_obs$realtime_insitu_location))
+}else{
+  setwd(file.path(lake_directory, "data_raw", config_obs$realtime_insitu_location))
+  system("git pull")
+}
+
+setwd(file.path(lake_directory, "data_raw"))
+if(!dir.exists(file.path(lake_directory, "data_raw", config_obs$realtime_met_station_location))){
+  system(paste0("git clone --depth 1 --single-branch --branch ",config_obs$realtime_met_station_location, " https://github.com/FLARE-forecast/FCRE-data.git ", config_obs$realtime_met_station_location))
+}else{
+  setwd(file.path(lake_directory, "data_raw", config_obs$realtime_met_station_location))
+  system("git pull")
+}
+
+setwd(file.path(lake_directory, "data_raw"))
+if(!dir.exists(file.path(lake_directory, "data_raw", config_obs$realtime_inflow_data_location))){
+  system(paste0("git clone --depth 1 --single-branch --branch ",config_obs$realtime_inflow_data_location, " https://github.com/FLARE-forecast/FCRE-data.git ", config_obs$realtime_inflow_data_location))
+}else{
+  setwd(file.path(lake_directory, "data_raw", config_obs$realtime_inflow_data_location))
+  system("git pull")
+}
+
+setwd(file.path(lake_directory, "data_raw"))
+if(!dir.exists(file.path(lake_directory, "data_raw", config_obs$manual_data_location))){
+  system(paste0("git clone --depth 1 --single-branch --branch ",config_obs$manual_data_location, " https://github.com/FLARE-forecast/FCRE-data.git ", config_obs$manual_data_location))
+}else{
+  setwd(file.path(lake_directory, "data_raw", config_obs$manual_data_location))
+  system("git pull")
+}
+
+if(!file.exists(file.path(lake_directory, "data_raw", config_obs$met_raw_obs_fname[2]))){
+  download.file("https://pasta.lternet.edu/package/data/eml/edi/389/5/3d1866fecfb8e17dc902c76436239431", destfile = file.path(lake_directory, "data_raw",config_obs$manual_data_location,"/Met_final_2015_2020.csv"), method="curl")
+}
+
+if(!file.exists(file.path(lake_directory, "data_raw", config_obs$inflow_raw_file1[2]))){
+  download.file("https://pasta.lternet.edu/package/data/eml/edi/202/7/f5fa5de4b49bae8373f6e7c1773b026e", destfile = file.path(lake_directory, "data_raw",config_obs$manual_data_location,"/inflow_for_EDI_2013_10Jan2021.csv"), method="curl")
+}
+
+if(!file.exists(file.path(lake_directory, "data_raw", config_obs$insitu_obs_fname[2]))){
+  download.file("https://pasta.lternet.edu/package/data/eml/edi/271/5/c1b1f16b8e3edbbff15444824b65fe8f", destfile = file.path(lake_directory, "data_raw",config_obs$manual_data_location,"/Catwalk_cleanedEDI.csv"), method="curl")
+}
+
+if(!file.exists(file.path(lake_directory, "data_raw", config_obs$secchi_fname))){
+  download.file("https://pasta.lternet.edu/package/data/eml/edi/198/8/336d0a27c4ae396a75f4c07c01652985", destfile = file.path(lake_directory, "data_raw",config_obs$manual_data_location,"/Secchi_depth_2013-2020.csv"), method="curl")
+}
+
+
+met_qaqc(realtime_file = file.path(config$file_path$data_directory, config_obs$met_raw_obs_fname[1]),
+         qaqc_file = file.path(config$file_path$data_directory, config_obs$met_raw_obs_fname[2]),
          cleaned_met_file_dir = config$file_path$qaqc_data_directory,
          input_file_tz = "EST",
-         nldas = file.path(config_obs$data_location, config_obs$nldas))
+         nldas = file.path(config$file_path$data_directory, config_obs$nldas))
 
 cleaned_inflow_file <- paste0(config$file_path$qaqc_data_directory, "/inflow_postQAQC.csv")
 
-inflow_qaqc(realtime_file = file.path(config_obs$data_location, config_obs$inflow_raw_file1[1]),
-            qaqc_file = file.path(config_obs$data_location, config_obs$inflow_raw_file1[2]),
-            nutrients_file = file.path(config_obs$data_location, config_obs$nutrients_fname),
+inflow_qaqc(realtime_file = file.path(config$file_path$data_directory, config_obs$inflow_raw_file1[1]),
+            qaqc_file = file.path(config$file_path$data_directory, config_obs$inflow_raw_file1[2]),
+            nutrients_file = file.path(config$file_path$data_directory, config_obs$nutrients_fname),
             cleaned_inflow_file ,
             input_file_tz = 'EST')
 
@@ -67,31 +119,32 @@ inflow_qaqc(realtime_file = file.path(config_obs$data_location, config_obs$inflo
 cleaned_observations_file_long <- paste0(config$file_path$qaqc_data_directory,
                                          "/observations_postQAQC_long.csv")
 
-in_situ_qaqc(insitu_obs_fname = file.path(config_obs$data_location,config_obs$insitu_obs_fname),
-             data_location = config_obs$data_location,
-             maintenance_file = file.path(config_obs$data_location,config_obs$maintenance_file),
-             ctd_fname = file.path(config_obs$data_location,config_obs$ctd_fname),
-             nutrients_fname =  file.path(config_obs$data_location, config_obs$nutrients_fname),
-             secchi_fname = file.path(config_obs$data_location, config_obs$secchi_fname),
+config_obs$data_location <- config$file_path$data_directory
+in_situ_qaqc(insitu_obs_fname = file.path(config$file_path$data_directory,config_obs$insitu_obs_fname),
+             data_location = config$file_path$data_directory,
+             maintenance_file = file.path(config$file_path$data_directory,config_obs$maintenance_file),
+             ctd_fname = file.path(config$file_path$data_directory,config_obs$ctd_fname),
+             nutrients_fname =  file.path(config$file_path$data_directory, config_obs$nutrients_fname),
+             secchi_fname = file.path(config$file_path$data_directory, config_obs$secchi_fname),
              cleaned_observations_file_long = cleaned_observations_file_long,
              lake_name_code = config$location$lake_name_code,
-             config = config_obs)
+             config_obs = config_obs)
 
 
 #for(i in 1:nrow(forecasting_timings)){
-  for(i in 1:3){
+  for(i in 1:1){
 
-  config_obs <- yaml::read_yaml(file.path(lake_directory,"configuration","observation_processing","observation_processing.yml"))
-  config <- yaml::read_yaml(file.path(lake_directory,"configuration","FLAREr","configure_flare_glm_aed.yml"))
-  run_config <- yaml::read_yaml(config$file_path$run_config)
+  #config_obs <- yaml::read_yaml(file.path(lake_directory,"configuration","observation_processing","observation_processing.yml"))
+  #config <- yaml::read_yaml(file.path(lake_directory,"configuration","FLAREr","configure_flare_glm_aed.yml"))
+  run_config <- yaml::read_yaml(file.path(lake_directory,"configuration","FLAREr","configure_run.yml"))
 
   run_config$start_datetime <- as.character(forecasting_timings[i,1])
   run_config$forecast_start_datetime <- as.character(forecasting_timings[i, 2])
   run_config$forecast_horizon <- forecasting_timings[i, 3]
   run_config$restart_file <- saved_file
-  yaml::write_yaml(run_config, file = config$file_path$run_config)
+  yaml::write_yaml(run_config, file = file.path(lake_directory,"configuration","FLAREr","configure_run.yml"))
 
-  file.copy(file.path(config_obs$data_location,config$management$sss_fname), file.path(config$file_path$qaqc_data_directory,basename(config$management$sss_fname)))
+  file.copy(file.path(config$file_path$data_directory,config$management$sss_fname), file.path(config$file_path$qaqc_data_directory,basename(config$management$sss_fname)))
 
   config$run_config <- run_config
 
@@ -140,16 +193,16 @@ in_situ_qaqc(insitu_obs_fname = file.path(config_obs$data_location,config_obs$in
 
   if(config$model_settings$model_name == "glm_aed"){
 
-  file.copy(file.path(config_obs$data_location, "manual-data/FCR_weir_inflow_2013_2019_20200828_allfractions_2poolsDOC.csv"),
-            file.path(config$file_path$execute_directory, "FCR_weir_inflow_2013_2019_20200624_allfractions_2poolsDOC.csv"))
+  file.copy(file.path(config$file_path$data_directory, "fcre-manual-data/FCR_weir_inflow_2013_2019_20200828_allfractions_2poolsDOC.csv"),
+            file.path(config$file_path$execute_directory, "FCR_weir_inflow_2013_2019_20200828_allfractions_2poolsDOC.csv"))
 
-  file.copy(file.path(config_obs$data_location, "manual-data/FCR_wetland_inflow_2013_2019_20200828_allfractions_2DOCpools.csv"),
-            file.path(config$file_path$execute_directory, "FCR_wetland_inflow_2013_2019_20200713_allfractions_2DOCpools.csv"))
+  file.copy(file.path(config$file_path$data_directory, "fcre-manual-data/FCR_wetland_inflow_2013_2019_20200828_allfractions_2DOCpools.csv"),
+            file.path(config$file_path$execute_directory, "FCR_wetland_inflow_2013_2019_20200828_allfractions_2DOCpools.csv"))
 
-  file.copy(file.path(config_obs$data_location, "manual-data/FCR_SSS_inflow_2013_2019_20200701_allfractions_2DOCpools.csv"),
+  file.copy(file.path(config$file_path$data_directory, "fcre-manual-data/FCR_SSS_inflow_2013_2019_20200701_allfractions_2DOCpools.csv"),
             file.path(config$file_path$execute_directory, "FCR_SSS_inflow_2013_2019_20200701_allfractions_2DOCpools.csv"))
 
-  file.copy(file.path(config_obs$data_location, "manual-data/FCR_spillway_outflow_SUMMED_WeirWetland_2013_2019_20200615.csv"),
+  file.copy(file.path(config$file_path$data_directory, "fcre-manual-data/FCR_spillway_outflow_SUMMED_WeirWetland_2013_2019_20200615.csv"),
             file.path(config$file_path$execute_directory, "FCR_spillway_outflow_SUMMED_WeirWetland_2013_2019_20200615.csv"))
   }
 
@@ -157,18 +210,18 @@ in_situ_qaqc(insitu_obs_fname = file.path(config_obs$data_location,config_obs$in
 
   inflow_forecast_path <- file.path(config$file_path$inflow_directory, config$inflow$forecast_inflow_model,config$location$site_id,lubridate::as_date(forecast_start_datetime),forecast_hour)
 
-  inflow_outflow_files <- FLAREr::create_glm_inflow_outflow_files(inflow_file_dir = inflow_forecast_path,
-                                                                  inflow_obs = cleaned_inflow_file,
-                                                                  working_directory = config$file_path$execute_directory,
-                                                                  config = config,
-                                                                  state_names = states_config$state_names)
+  #inflow_outflow_files <- FLAREr::create_glm_inflow_outflow_files(inflow_file_dir = inflow_forecast_path,
+  #                                                                inflow_obs = cleaned_inflow_file,
+  #                                                                working_directory = config$file_path$execute_directory,
+  #                                                                config = config,
+  #                                                                state_names = states_config$state_names)
   #inflow_file_names <- inflow_outflow_files$inflow_file_name
   #outflow_file_names <- inflow_outflow_files$outflow_file_name
 
   if(config$model_settings$model_name == "glm_aed"){
 
-  file1 <- file.path(config$file_path$execute_directory, "FCR_weir_inflow_2013_2019_20200624_allfractions_2poolsDOC.csv")
-  file2 <- file.path(config$file_path$execute_directory, "FCR_wetland_inflow_2013_2019_20200713_allfractions_2DOCpools.csv")
+  file1 <- file.path(config$file_path$execute_directory, "FCR_weir_inflow_2013_2019_20200828_allfractions_2poolsDOC.csv")
+  file2 <- file.path(config$file_path$execute_directory, "FCR_wetland_inflow_2013_2019_20200828_allfractions_2DOCpools.csv")
   inflow_file_names <- tibble(file1 = file1,
                               file2 = file2,
                               file3 = "sss_inflow.csv")
