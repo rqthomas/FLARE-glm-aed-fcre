@@ -1,0 +1,7 @@
+restart_file: .na
+start_datetime: '2018-07-20'
+end_datetime: .na
+forecast_start_datetime: '2018-09-01'
+forecast_horizon: 0.0
+sim_name: test_run
+forecast_sss_on: yes
