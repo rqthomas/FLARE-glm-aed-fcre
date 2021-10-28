@@ -514,6 +514,13 @@
       "Repository": "RSPM",
       "Hash": "10bec8a8264f3eb59531e8c4c0303f96"
     },
+    "here": {
+      "Package": "here",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "24b224366f9c2e7534d2344d10d59211"
+    },
     "highr": {
       "Package": "highr",
       "Version": "0.9",

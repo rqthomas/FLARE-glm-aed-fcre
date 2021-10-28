@@ -1,9 +1,9 @@
+renv::restore()
+#diskutil partitionDisk $(hdiutil attach -nomount ram://2048000) 1 GPTFormat APFS 'ramdisk' '100%'
 library(tidyverse)
 library(lubridate)
 
-#diskutil partitionDisk $(hdiutil attach -nomount ram://2048000) 1 GPTFormat APFS 'ramdisk' '100%'
-
-lake_directory <- "/Users/quinn/workfiles/Research/SSC_forecasting/run_flare_package/flarer_aed/"
+lake_directory <- here::here()
 update_run_config <- TRUE #TRUE is used for an iterative workflow
 
 
@@ -37,6 +37,16 @@ saved_file <- NA
 
 config_obs <- yaml::read_yaml(file.path(lake_directory,"configuration","observation_processing","observation_processing.yml"))
 config <- yaml::read_yaml(file.path(lake_directory,"configuration","FLAREr","configure_flare_glm_aed.yml"))
+#Note: lake_directory need to be set prior to running this script
+config$file_path$qaqc_data_directory <- file.path(lake_directory, "data_processed")
+config$file_path$data_directory <- file.path(lake_directory, "data_raw")
+config$file_path$configuration_directory <- file.path(lake_directory, "configuration")
+config$file_path$execute_directory <- file.path(lake_directory, "flare_tempdir")
+config$file_path$run_config <- file.path(lake_directory, "configuration", "FLAREr","configure_run.yml")
+config$file_path$forecast_output_directory <- file.path(lake_directory, "forecasts")
+
+
+
 run_config <- yaml::read_yaml(config$file_path$run_config)
 
 met_qaqc(realtime_file = file.path(config_obs$data_location, config_obs$met_raw_obs_fname[1]),
