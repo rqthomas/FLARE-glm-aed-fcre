@@ -11,7 +11,6 @@ library(lubridate)
 lake_directory <- here::here()
 update_run_config <- TRUE #TRUE is used for an iterative workflow
 
-
 files.sources <- list.files(file.path(lake_directory, "R"), full.names = TRUE)
 sapply(files.sources, source)
 
@@ -49,6 +48,8 @@ config$file_path$configuration_directory <- file.path(lake_directory, "configura
 config$file_path$execute_directory <- file.path(lake_directory, "flare_tempdir")
 config$file_path$run_config <- file.path(lake_directory, "configuration", "FLAREr","configure_run.yml")
 config$file_path$forecast_output_directory <- file.path(lake_directory, "forecasts")
+config$file_path$noaa_directory <- file.path(lake_directory, "drivers")
+
 
 run_config <- yaml::read_yaml(config$file_path$run_config)
 
@@ -99,6 +100,8 @@ if(!file.exists(file.path(lake_directory, "data_raw", config_obs$insitu_obs_fnam
 if(!file.exists(file.path(lake_directory, "data_raw", config_obs$secchi_fname))){
   download.file("https://pasta.lternet.edu/package/data/eml/edi/198/8/336d0a27c4ae396a75f4c07c01652985", destfile = file.path(lake_directory, "data_raw",config_obs$manual_data_location,"/Secchi_depth_2013-2020.csv"), method="curl")
 }
+
+
 
 
 met_qaqc(realtime_file = file.path(config$file_path$data_directory, config_obs$met_raw_obs_fname[1]),
@@ -180,6 +183,15 @@ in_situ_qaqc(insitu_obs_fname = file.path(config$file_path$data_directory,config
 
 
   forecast_files <- list.files(noaa_forecast_path, full.names = TRUE)
+  
+
+  if(length(forecast_files) == 0){
+    Sys.setenv("AWS_DEFAULT_REGION"="data",
+               "AWS_S3_ENDPOINT"="rquinnthomas.com")
+    download_s3_objects(lake_directory = lake_directory,
+                        bucket = "drivers",
+                        prefix = file.path(config$met$forecast_met_model,config$location$site_id,lubridate::as_date(forecast_start_datetime),forecast_hour))
+  }
 
 
   print("Creating FLARE Met files")
